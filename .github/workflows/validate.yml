@@ -29,11 +29,18 @@ jobs:
         run: |
           mkdir -p /tmp/install-test
           cd /tmp/install-test
-          SKILL_DIR=$GITHUB_WORKSPACE COMMAND_DIR=/tmp/install-test/.claude/commands \
-            bash $GITHUB_WORKSPACE/scripts/install.sh
+          SKILL_DIR=$GITHUB_WORKSPACE bash $GITHUB_WORKSPACE/scripts/install.sh
           test -f AGENTS.md
           test -f .cursor/rules/wyyp.mdc
           test -f .wyyp.yml
-          test -f .claude/commands/wyyp.md
+          # 0.4.0+ 不再装 ~/.claude/commands/wyyp.md
+          test ! -f "$HOME/.claude/commands/wyyp.md" || (echo "legacy command 文件不应出现"; exit 1)
           head -5 .cursor/rules/wyyp.mdc | grep -q "^globs:"
           head -5 .cursor/rules/wyyp.mdc | grep -q "^alwaysApply:"
+
+      - name: Smoke test uninstall.sh
+        run: |
+          cd /tmp/install-test
+          KEEP_SKILL=1 bash $GITHUB_WORKSPACE/scripts/uninstall.sh
+          test ! -f AGENTS.md
+          test ! -f .cursor/rules/wyyp.mdc
