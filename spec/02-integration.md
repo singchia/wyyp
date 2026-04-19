@@ -2,6 +2,27 @@
 
 > **适用**:项目有外部依赖(DB / Redis / MQ / 第三方 HTTP)时必跑。验证组件之间的交互,用真实(或容器化的)依赖。
 
+## 三态判定
+
+| 状态 | 信号 | 打分 |
+|------|------|------|
+| **applicable** | 代码里 import 数据库 / Redis / MQ / HTTP client + `test/integration/` 或 `*_integration_test.go` 存在 | 跑 |
+| **MISSING** | 代码里有外部依赖 client + 集成测试目录为空 | **扣满 15 分** |
+| **N/A** | 单文件 CLI / 纯文档 / 纯计算库(无外部依赖) | 不扣分 |
+
+**外部依赖**探测信号(任一命中即视为有):
+- Go:`database/sql` / `go-redis/redis` / `go.mongodb.org` / `Shopify/sarama` / `net/http` client 调用
+- Node:`pg` / `mysql2` / `ioredis` / `mongoose` / `kafkajs` / `axios` / `fetch` 到外部域
+- Python:`sqlalchemy` / `psycopg` / `redis` / `pymongo` / `kafka-python` / `requests` / `httpx`
+
+**MISSING 报告模板**:
+```
+[集成] MISSING — 扣 15 分
+   internal/data/order_repo.go 用了 database/sql,但 test/integration/ 为空。
+   建议:用 testcontainers-go 起 mysql,给 OrderRepo 加 3 个集成用例。
+   参考:spec/02-integration.md#testcontainers-优先
+```
+
 ## 与单元测试的分界
 
 | 维度 | 单元 | 集成 |

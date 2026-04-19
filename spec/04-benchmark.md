@@ -1,6 +1,32 @@
 # 04 - 基准测试
 
-> **适用**:项目有 `Benchmark*` / `*.bench.*` / `criterion` 等基准测试时必跑。对比 baseline,发现性能回退。
+> **适用**:项目有明显热路径(HTTP handler / pipeline / 编解码)时必跑。对比 baseline,发现性能回退。
+
+## 三态判定
+
+| 状态 | 信号 | 打分 |
+|------|------|------|
+| **applicable** | 有 `Benchmark*` / `*.bench.*` / `criterion` + baseline 存在 | 跑对比 |
+| **applicable*** | 有 Benchmark* 但 baseline 缺失 | 跑一次,建议用户保存为 baseline,本次不扣分 |
+| **MISSING** | 有热路径代码(HTTP handler / 明显 for-hot-loop / 编解码函数)但无 Benchmark | **扣满 10 分** |
+| **N/A** | 纯 CRUD / CLI 工具 / 纯配置 / 无性能敏感场景 | 不扣分 |
+
+**热路径探测**(启发式):
+- 有 HTTP/gRPC handler(路由表 > 3 条)
+- 有循环处理流(stream / pipeline / batch 函数)
+- 有自定义编解码(marshal / unmarshal 里不止一层)
+- README / 文档提到 "performance" / "throughput" / "latency"
+
+任一命中 → 视为"有热路径"。
+
+**MISSING 报告模板**:
+```
+[基准] MISSING — 扣 10 分
+   检测到 internal/pipeline/stream.go(流处理热路径),但无 Benchmark* 函数。
+   建议:对 Pipeline.Process 加 BenchmarkPipeline_Process,
+         跑 go test -bench=. -benchmem 保存为 .wyyp/bench-baseline.txt。
+   参考:spec/04-benchmark.md#baseline-管理
+```
 
 ## 目标
 

@@ -1,6 +1,34 @@
 # 03 - 回归测试
 
-> **适用**:项目有 `tests/regression/` 或用例带 `@regression` / `Regression_` 标签时必跑。验证历史 bug 不复现、核心业务流不断裂。
+> **适用**:项目进入维护期(有 CHANGELOG / 已发过 tag)时必跑。验证历史 bug 不复现、核心业务流不断裂。
+
+## 三态判定
+
+| 状态 | 信号 | 打分 |
+|------|------|------|
+| **applicable** | 有 `tests/regression/` 目录 或 `@regression` 标记 或 `.wyyp.yml` 的 `regression.critical` 非空 | 跑 |
+| **MISSING** | 已发过 ≥1 个 tag(`git tag` 非空)或 有 CHANGELOG,但上述信号全无 | **扣满 20 分** |
+| **N/A** | MVP 初期(0 tag + 无 CHANGELOG) / 纯文档 / 脚手架 | 不扣分 |
+
+判定逻辑:
+```
+has_tag    = git tag | head -1 非空
+has_change = CHANGELOG.md 或 CHANGES.md 存在
+has_regr   = tests/regression/ 或 grep "@regression" 或 .wyyp.yml has critical
+```
+
+- `(has_tag or has_change) and not has_regr` → MISSING
+- `not has_tag and not has_change` → N/A(项目还没到维护期)
+- `has_regr` → applicable
+
+**MISSING 报告模板**:
+```
+[回归] MISSING — 扣 20 分
+   项目已发过 3 个 tag(最新 v1.2.0),但无 tests/regression/ 目录也无 @regression 标记。
+   每次 bug 修复应补一个回归用例,注释里写事故 ID / 原因。
+   建议:创建 tests/regression/,从最近一次 hotfix 开始补。
+   参考:spec/03-regression.md#回归用例维护守则
+```
 
 ## 什么是"核心回归用例"
 

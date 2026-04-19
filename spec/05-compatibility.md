@@ -2,6 +2,30 @@
 
 > **适用**:项目声明了多版本 / 多平台 / 多后端矩阵时必跑。验证在每个支持的环境下都能跑、结果一致。
 
+## 三态判定
+
+| 状态 | 信号 | 打分 |
+|------|------|------|
+| **applicable** | `.wyyp.yml` 声明矩阵 或 CI 有 `strategy.matrix` 非空 | 跑代表组合 |
+| **MISSING** | 发版产物有多平台二进制 / 多架构镜像,但无矩阵测试 | **扣满 10 分** |
+| **N/A** | 单平台部署声明 / 内部工具 / 仅 latest 版本 | 不扣分 |
+
+**多平台发版信号**(启发式):
+- `Makefile` 的 `build-cross` / 遍历 `GOOS`,`GOARCH` 组合
+- `Dockerfile` manifest 里多 platform(`linux/amd64,linux/arm64`)
+- `goreleaser.yml` 里多目标
+- GitHub release assets 有多个平台
+
+任一命中说明"应该在矩阵上跑测试"。
+
+**MISSING 报告模板**:
+```
+[兼容性] MISSING — 扣 10 分
+   Makefile 里 build-cross 生成 linux/darwin × amd64/arm64 四平台二进制,
+   但 .github/workflows/*.yml 里无 strategy.matrix。
+   建议:CI 加 {os, arch} matrix,至少把单元测试在每个组合上跑一遍。
+```
+
 ## 常见兼容性维度
 
 | 维度 | 例子 | 触发信号 |

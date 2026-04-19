@@ -1,90 +1,113 @@
 ---
 name: wyyp
-description: "我要验牌（wyyp）— QA 质量工程 skill。用户开发完成后调用 /wyyp，agent 按七个维度对项目执行质量验证：单元测试、集成测试、回归测试（核心回归用例）、基准测试、兼容性测试、混沌测试、安全测试。每个维度自动识别语言 / 框架（Go / Node / Python / Java / Rust 等）选工具，跑检查，聚合结果；全部通过输出奖励提醒'牌没有问题'，有失败则列出具体项和修复建议。语言无关，框架中性，按需加载对应维度 spec 子文件。QA quality engineering skill — invoke /wyyp after dev completion, agent runs 7-dimension verification and rewards 牌没有问题 on green."
+description: "我要验牌(wyyp)— QA 质量工程 skill。用户开发完成后调用 /wyyp,agent 按七个维度对项目执行质量验证:单元、集成、回归、基准、兼容性、混沌、安全。三态判定(applicable / MISSING / N/A)+ 加权百分制评分 + 等级(A+ ~ F);全部通过输出'牌没有问题',有问题按等级给话术和修复建议。自动识别仓库形态(纯文档 / 单文件 CLI / MVP / 成熟服务)决定哪些维度适用,避免对小项目一刀切。语言无关,框架中性。QA quality engineering skill — /wyyp runs 7-dimension verification with weighted scoring, awards 牌没有问题 on A+ and blocks release on F."
 license: MIT
 ---
 
-# wyyp（我要验牌）
+# wyyp(我要验牌)
 
-> 你是项目的 QA。用户开发完成后对你说 `/wyyp`，你就开始验牌。
+> 你是项目的 QA。用户开发完成后对你说 `/wyyp`,你就开始验牌、打分、出结论。
 
-## 工作模式（渐进式披露）
+## 核心理念
 
-本 skill 用 7 个维度做质量验证。**不要一次性读完所有 spec**——按触发场景加载：
+一次 `/wyyp` = 对项目各个质量维度翻一次牌。
 
-| 维度 | 必读 spec | 何时跑 |
-|------|----------|--------|
-| 单元测试 | `spec/01-unit.md` | 每次 `/wyyp` 必跑 |
-| 集成测试 | `spec/02-integration.md` | 项目有外部依赖（DB / HTTP / MQ）时必跑 |
-| 回归测试 | `spec/03-regression.md` | 有 `tests/regression/` 或核心用例标记时必跑 |
-| 基准测试 | `spec/04-benchmark.md` | 有 `*_bench*` / `Benchmark*` 时必跑 |
-| 兼容性测试 | `spec/05-compatibility.md` | 有多版本矩阵 / 多平台发布时必跑 |
-| 混沌测试 | `spec/06-chaos.md` | 有 chaos 配置或用户显式要求时跑 |
-| 安全测试 | `spec/07-security.md` | 每次 `/wyyp` 必跑（lint + 漏洞扫描基线） |
+- **全绿**(A+)→ "牌没有问题 ✓"
+- **有瑕疵**(A / B / C)→ 按等级给话术 + 修复建议
+- **有大问题**(F)→ "禁止发版",一条条列清楚
 
-路由入口:`spec/spec.md`。
+**没测试 ≠ 不用跑。** 探测到"应该有但没有"的维度,按 MISSING 扣满权重——没测试本身就是质量问题。
+
+## 工作模式(渐进式披露)
+
+7 个维度各一个 spec 子文件,按触发场景加载。入口:`spec/spec.md`。
+
+| 维度 | 必读 spec | 默认权重 |
+|------|----------|---------:|
+| 单元测试 | `spec/01-unit.md` | 20 |
+| 集成测试 | `spec/02-integration.md` | 15 |
+| 回归测试 | `spec/03-regression.md` | 20 |
+| 基准测试 | `spec/04-benchmark.md` | 10 |
+| 兼容性测试 | `spec/05-compatibility.md` | 10 |
+| 混沌测试 | `spec/06-chaos.md` | 5 |
+| 安全测试 | `spec/07-security.md` | 20 |
 
 ## /wyyp 执行流程
 
-用户触发 `/wyyp` 后,按下面的顺序执行:
+### Step 0 — 仓库形态 + 技术栈探测
 
-### Step 0 — 项目探测
-读以下信号判断技术栈(只读 ≤5 个文件):
-- `go.mod` → Go
-- `package.json` → Node / TS
-- `pyproject.toml` / `requirements.txt` → Python
-- `pom.xml` / `build.gradle` → Java / Kotlin
-- `Cargo.toml` → Rust
+读以下信号(≤5 个文件):
+- 工程文件:`go.mod` / `package.json` / `pyproject.toml` / `Cargo.toml` / `pom.xml`
+- 构建封装:`Makefile` / `justfile` / `Taskfile.yml`
+- 仓库形态:`.md` 文件比例 / `git tag` 列表 / `internal/` 是否存在 / LOC 规模
 
-同时检查 `Makefile` / `justfile` / `Taskfile.yml` 是否已封装测试 target。**有封装优先调它**(例如 `make test` / `make cover`),不直接调语言原生命令。
+据此判定仓库形态:
+- 纯文档 / 单文件 CLI / 脚手架 / 纯配置 / MVP / 成熟服务
 
-### Step 1 — 维度识别
-按上面的"何时跑"矩阵判断本次要跑哪几个维度。**任何不跑的维度必须说明原因**(例如"项目无 benchmark 用例,跳过")。
+**有 Makefile 封装就调 `make <target>`,不绕过去直接调语言命令。**
 
-### Step 2 — 按维度加载 spec
-读对应 `spec/0x-*.md`,按文件里的"执行清单"跑。
+### Step 1 — 三态判定(每维度)
 
-### Step 3 — 结果聚合
-所有维度结果汇总成一张表:
+每个维度落一个状态:
+
+| 状态 | 含义 | 打分 |
+|------|------|------|
+| **applicable** | 应该有 + 探测到测试文件 | 跑完按结果评分 |
+| **MISSING** | 应该有 + 没有 | 扣满权重(不是 SKIP) |
+| **N/A** | 仓库性质不适用 | 不扣分,权重归一给其他维度 |
+
+"应该有"的启发式见 `spec/spec.md#维度路由表`。
+
+### Step 2 — 读 `.wyyp.yml`(可选)
+
+存在则覆盖默认权重 / 门槛 / skip 声明。不存在就走默认。
+
+### Step 3 — 按维度执行
+
+顺序:安全 → 单元 → 集成 → 回归 → 基准 → 兼容性 → 混沌。
+
+- applicable 的:读对应 spec,按"执行清单"跑
+- MISSING 的:不跑,直接扣满权重,给出"为什么应该有"的证据 + 建议
+- N/A 的:不跑,在报告说明依据
+- 混沌维度破坏性,**先询问用户**
+
+中途某维度 FAIL 不停,跑完全部再汇总。
+
+### Step 4 — 计分
 
 ```
-┌─────────────────┬────────┬──────────────────────────┐
-│ 维度            │ 结果   │ 说明                     │
-├─────────────────┼────────┼──────────────────────────┤
-│ 单元测试        │ PASS   │ 128 tests, cover 82.3%   │
-│ 集成测试        │ PASS   │ 14 tests via docker      │
-│ 回归测试        │ PASS   │ 7/7 核心用例             │
-│ 基准测试        │ PASS   │ 无性能回退(对比 baseline)│
-│ 兼容性测试      │ SKIP   │ 项目未声明多版本矩阵     │
-│ 混沌测试        │ SKIP   │ 用户未要求,项目无配置    │
-│ 安全测试        │ PASS   │ gosec 0, trivy 0 HIGH    │
-└─────────────────┴────────┴──────────────────────────┘
+score = Σ (PASS_weight) - Σ (FAIL_deduction) - Σ (MISSING_weight)
 ```
 
-### Step 4 — 奖励 / 反馈
+权重先对 N/A 归一到 100。扣分公式按维度见 `spec/spec.md#打分规则`。
 
-- **全部 PASS 或 SKIP(非 FAIL)** → 输出:
-  ```
-  牌没有问题 ✓
-  ```
-  并附上执行耗时和下一步建议(例如"可以发 PR"或"可以打 tag 发版")。
+等级:
+| 分数 | 等级 | 终局话术 |
+|------|------|---------|
+| 95-100 | A+ | 牌没有问题 ✓ |
+| 85-94 | A | 牌基本没问题,有几处小瑕疵 |
+| 70-84 | B | 牌有些问题,建议修了再发 |
+| 60-69 | C | 牌问题不少,先别发 |
+| < 60 | F | **禁止发版** |
 
-- **有 FAIL** → 列出每个失败项 + 建议修复路径 + 对应 spec 章节锚点。**不要自动改代码,除非用户要求。**
+### Step 5 — 输出报告
+
+表格 + 总分 + 等级 + 建议。格式见 `spec/spec.md#最终输出格式`。
 
 ## 首次在新项目中激活
 
 如果是首次在某项目用 wyyp:
-- 项目根没有 `AGENTS.md` → 询问用户是否从 `docs/templates/project-agents-template.md` 创建一份
-- 项目根没有 `.wyyp.yml` → 询问用户是否写一份最小配置(声明跳过哪些维度、baseline 位置等)。没有也能跑,只是全部走默认策略。
+- 项目根没有 `AGENTS.md` → 询问是否从 `docs/templates/project-agents-template.md` 创建
+- 项目根没有 `.wyyp.yml` → 询问是否落一份模板(`docs/templates/wyyp-config-template.yml`);没有也能跑,全部走默认
 
-## 默认假设(可被 `.wyyp.yml` 覆盖)
+## 默认假设(`.wyyp.yml` 可覆盖)
 
-- 覆盖率门槛:70%(单元 + 集成合计)
-- 基准回退阈值:单项指标劣化 >10% 即 FAIL
-- 安全扫描:HIGH / CRITICAL 阻断,MEDIUM 仅告警
-- 回归用例目录:`tests/regression/` 或带 `@regression` / `Regression_` 标签
-- 兼容性矩阵:看 `.github/workflows/*.yml` 或 `matrix.yml`
+- 覆盖率门槛:70%
+- 基准回退阈值:10%
+- 安全:HIGH / CRITICAL 阻断,MEDIUM 告警
+- 核心回归用例:`.wyyp.yml` 的 `regression.critical` 白名单
+- 等级门槛:A+ 95 / A 85 / B 70 / C 60
 
 ## 输出语言
 
-默认中文。错误信息里的命令 / 堆栈保留原文。
+默认中文。命令 / 堆栈保留原文。
