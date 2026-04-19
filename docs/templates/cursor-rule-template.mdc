@@ -1,5 +1,6 @@
 ---
 description: wyyp 质量验牌规则,Cursor 自动附加
+alwaysApply: false
 globs:
   - "**/*_test.go"
   - "**/*.test.ts"
@@ -11,7 +12,6 @@ globs:
   - "**/tests/**"
   - ".wyyp.yml"
   - ".github/workflows/*.yml"
-alwaysApply: false
 ---
 
 # wyyp 质量规则
