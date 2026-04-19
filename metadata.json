@@ -1,0 +1,39 @@
+{
+  "name": "wyyp",
+  "version": "0.1.0",
+  "description": "我要验牌(wyyp)— QA 质量工程 skill。Claude Code 下输入 /wyyp 触发 7 维度验牌:单元测试、集成测试、回归测试(核心回归用例)、基准测试、兼容性测试、混沌测试、安全测试。语言无关,框架中性,自动识别 Go / Node / Python / Java / Rust 等栈选工具跑检查,聚合结果;全部通过输出'牌没有问题',有失败则列出具体项和修复建议。符合 skills.sh 协议,可通过 npx skills add / install.sh 安装。| QA quality engineering skill — invoke /wyyp after dev completion, agent runs 7-dimension verification and rewards 牌没有问题 on green.",
+  "author": "singchia",
+  "license": "MIT",
+  "repository": "https://github.com/singchia/wyyp",
+  "tags": [
+    "qa",
+    "quality-engineering",
+    "testing",
+    "unit-test",
+    "integration-test",
+    "regression-test",
+    "benchmark",
+    "compatibility",
+    "chaos-engineering",
+    "security-testing",
+    "sast",
+    "vulnerability-scan",
+    "ai-agent",
+    "claude-code",
+    "skills-sh",
+    "agent-skills",
+    "framework-agnostic",
+    "language-agnostic",
+    "chinese"
+  ],
+  "language": "zh-CN",
+  "agents": [
+    "claude-code",
+    "cursor",
+    "cline",
+    "windsurf",
+    "codex",
+    "gemini-cli",
+    "github-copilot"
+  ]
+}

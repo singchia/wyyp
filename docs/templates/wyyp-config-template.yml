@@ -1,0 +1,56 @@
+# .wyyp.yml — 放在项目根目录,/wyyp 会读取。没有也能跑(全部走默认)。
+version: 1
+
+# 跳过哪些维度 —— 给理由,会在报告里显示
+skip:
+  # chaos: "MVP 阶段无演练环境"
+  # compatibility: "单平台 linux/amd64"
+
+# 覆盖率门槛(默认 70%)
+coverage:
+  min: 70
+  # scope: [biz, data]          # 只统计这些目录
+
+# 基准测试
+benchmark:
+  baseline: .wyyp/bench-baseline.txt
+  regression_threshold: 0.10    # 10% 劣化阻塞
+  count: 5                      # go test -count 值
+
+# 回归用例
+regression:
+  # 核心白名单,任一失败 FAIL 阻塞
+  critical:
+    # - path: tests/regression/checkout_test.go
+    #   reason: "支付主流程,2024 年事故"
+  # 普通回归(失败仅告警)
+  standard_tag: "@regression"
+  standard_dir: tests/regression/
+
+# 安全扫描
+security:
+  severity_block: [HIGH, CRITICAL]
+  severity_warn: [MEDIUM]
+  allowlist:
+    # - id: CVE-2024-99999
+    #   reason: "upstream 未修,未调用到受影响函数"
+    #   until: 2026-06-01         # 到期必须复查
+
+# 兼容性矩阵(/wyyp 会选代表跑,不全跑)
+compatibility:
+  # go: ["1.22", "1.24"]
+  # os: [linux, darwin]
+  # arch: [amd64, arm64]
+
+# 混沌测试(默认告警不阻塞)
+chaos:
+  default_warn_only: true
+  # block_on: [db_latency]        # 必须 pass 的场景
+
+# 命令覆写 —— 极少用,默认按探测走 Makefile / 语言命令
+# commands:
+#   unit: "make test-unit"
+#   integration: "make test-integration"
+#   regression: "make test-regression"
+#   bench: "make bench"
+#   security: "make lint vuln secscan"

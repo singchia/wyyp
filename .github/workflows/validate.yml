@@ -1,0 +1,39 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pyyaml
+        run: pip install pyyaml
+
+      - name: Validate SKILL.md + routing + self-check (strict)
+        run: python3 scripts/validate-skill.py --strict .
+
+      - name: Smoke test build
+        run: |
+          bash scripts/build-skill.sh /tmp/dist
+          test -f /tmp/dist/wyyp.skill
+
+      - name: Smoke test install.sh in clean dir
+        run: |
+          mkdir -p /tmp/install-test
+          cd /tmp/install-test
+          SKILL_DIR=$GITHUB_WORKSPACE COMMAND_DIR=/tmp/install-test/.claude/commands \
+            bash $GITHUB_WORKSPACE/scripts/install.sh
+          test -f AGENTS.md
+          test -f .cursor/rules/wyyp.mdc
+          test -f .wyyp.yml
+          test -f .claude/commands/wyyp.md
+          head -5 .cursor/rules/wyyp.mdc | grep -q "^globs:"
+          head -5 .cursor/rules/wyyp.mdc | grep -q "^alwaysApply:"

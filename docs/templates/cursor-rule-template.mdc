@@ -1,0 +1,50 @@
+---
+description: wyyp 质量验牌规则,Cursor 自动附加
+globs:
+  - "**/*_test.go"
+  - "**/*.test.ts"
+  - "**/*.test.js"
+  - "**/*.spec.ts"
+  - "**/*.spec.js"
+  - "**/test_*.py"
+  - "**/*_test.py"
+  - "**/tests/**"
+  - ".wyyp.yml"
+  - ".github/workflows/*.yml"
+alwaysApply: false
+---
+
+# wyyp 质量规则
+
+本项目使用 wyyp(我要验牌)做 QA。写测试相关代码时遵循:
+
+## 单元测试
+- 一个 test 只测一件事
+- 错误断言具体错误类型,不止 `err != nil`
+- 并发代码跑 `-race`
+- 表格驱动覆盖边界(nil / 空 / 最大值 / Unicode)
+- 不 `time.Sleep` 等异步,用 channel / 同步原语
+
+## 集成测试
+- 用 testcontainers,不连生产
+- 每 case 数据独立(schema / prefix / tx)
+- 等依赖 ready 用健康检查,不 sleep
+- 结束清理容器
+
+## 回归测试
+- 每个 case 注释写事故 ID / 原因
+- 不允许 skip(skip 等于没有)
+- 核心用例在 `.wyyp.yml` 的 `regression.critical` 白名单
+
+## 基准测试
+- `-count=5` 降噪
+- baseline 在 `.wyyp/bench-baseline.*`
+- 回退 > 10% FAIL
+
+## 安全
+- 不在代码里写密钥(用 env + `.env.example`)
+- SQL 参数化,不拼字符串
+- 外部命令 `subprocess` 不带 `shell=True` / `bash -c` 加用户输入
+- TLS 不 `InsecureSkipVerify`
+
+调用 `/wyyp` 执行完整 7 维度验证。

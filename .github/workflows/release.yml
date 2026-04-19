@@ -1,0 +1,68 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pyyaml
+        run: pip install pyyaml
+
+      - name: Build wyyp.skill
+        run: bash scripts/build-skill.sh dist
+
+      - name: Verify artifact
+        run: |
+          ls -lh dist/wyyp.skill
+          python3 -c "import zipfile; z=zipfile.ZipFile('dist/wyyp.skill'); print(f'files: {len(z.namelist())}')"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/wyyp.skill
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          body: |
+            ## 安装
+
+            ### 通过 npx skills(推荐)
+
+            ```bash
+            cd your-project
+            npx skills add singchia/wyyp
+            ```
+
+            ### 通过一行命令(带 AGENTS.md / /wyyp 命令自动落地)
+
+            ```bash
+            cd your-project
+            bash <(curl -sSL https://raw.githubusercontent.com/singchia/wyyp/main/scripts/install.sh)
+            ```
+
+            ### 离线 / 内网
+
+            ```bash
+            curl -L -o wyyp.skill https://github.com/singchia/wyyp/releases/download/${{ github.ref_name }}/wyyp.skill
+            unzip wyyp.skill -d ~/.claude/skills/
+            ```
+
+            ## 使用
+
+            在 Claude Code 里输入 `/wyyp`,agent 会按 7 个维度对项目做完整 QA 验牌。全部通过输出"牌没有问题 ✓"。
+
+            完整 changelog 见下方"What's Changed"。
