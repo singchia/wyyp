@@ -35,7 +35,9 @@ cd your-project
 npx skills add singchia/wyyp
 ```
 
-### 通过一行命令(带 `/wyyp` 命令 + AGENTS.md + .cursor/rules 自动落地)
+### 通过一行命令("全家桶":多 agent symlink + AGENTS.md + Cursor 规则 + 配置模板)
+
+> `npx skills add` 只装到 Claude Code 的 skill 目录。如果你还用 Codex / Trae / Trae-CN,或想让 Cursor / Cline / Gemini CLI / Copilot 也识别本项目的 wyyp 约定,跑这条:
 
 ```bash
 cd your-project
