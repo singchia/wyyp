@@ -25,7 +25,13 @@ set -euo pipefail
 
 SKILL_DIR="${SKILL_DIR:-$HOME/.claude/skills/wyyp}"
 COMMAND_DIR="${COMMAND_DIR:-$HOME/.claude/commands}"
-CODEX_SKILL_LINK="${CODEX_SKILL_LINK:-$HOME/.codex/skills/wyyp}"
+
+# 其他 agent 的 skill 符号链接
+PEER_SKILL_LINKS=(
+    "Codex|${HOME}/.codex/skills/wyyp"
+    "Trae|${HOME}/.trae/skills/wyyp"
+    "Trae-CN|${HOME}/.trae-cn/skills/wyyp"
+)
 KEEP_SKILL="${KEEP_SKILL:-1}"
 KEEP_COMMAND="${KEEP_COMMAND:-0}"
 KEEP_CONFIG="${KEEP_CONFIG:-0}"
@@ -102,16 +108,20 @@ else
 fi
 
 # ────────────────────────────────────────────────────────
-# Step 5: Codex 符号链接
+# Step 5: 其他 agent 的符号链接(Codex / Trae / Trae-CN)
 # ────────────────────────────────────────────────────────
-if [[ -L "$CODEX_SKILL_LINK" ]]; then
-    rm "$CODEX_SKILL_LINK"
-    echo "✓ 已删除 Codex 符号链接:$CODEX_SKILL_LINK"
-elif [[ -e "$CODEX_SKILL_LINK" ]]; then
-    echo "⚠  $CODEX_SKILL_LINK 不是符号链接(可能是用户手动 cp 过去的),保留不动"
-else
-    echo "⏭  $CODEX_SKILL_LINK 不存在,跳过"
-fi
+for entry in "${PEER_SKILL_LINKS[@]}"; do
+    LABEL="${entry%%|*}"
+    LINK="${entry##*|}"
+    if [[ -L "$LINK" ]]; then
+        rm "$LINK"
+        echo "✓ 已删除 $LABEL 符号链接:$LINK"
+    elif [[ -e "$LINK" ]]; then
+        echo "⚠  $LINK 不是符号链接(可能手动 cp 过去的),保留不动"
+    else
+        echo "⏭  $LINK 不存在,跳过"
+    fi
+done
 
 # ────────────────────────────────────────────────────────
 # Step 6: 全局 skill 目录

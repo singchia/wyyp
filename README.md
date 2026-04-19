@@ -54,7 +54,7 @@ KEEP_SKILL=0 bash <(curl -sSL https://raw.githubusercontent.com/singchia/wyyp/ma
 一条命令会:
 
 1. 安装 skill 到 `~/.claude/skills/wyyp/`(`/wyyp` 直接触发 skill,不需要独立命令文件)
-2. **检测 Codex,symlink 到 `~/.codex/skills/wyyp`**(重启 Codex 后出现在"个人"skill 列表)
+2. **检测 Codex / Trae / Trae-CN,symlink 到各自的 `skills/wyyp`**(重启对应 agent 后出现在"个人"skill 列表)
 3. 在当前目录创建 `AGENTS.md`
 4. 落 `.cursor/rules/wyyp.mdc`(Cursor 自动附加)
 5. 落 `.wyyp.yml` 配置模板

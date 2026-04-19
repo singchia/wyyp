@@ -26,9 +26,15 @@ set -euo pipefail
 
 REPO_URL="https://github.com/singchia/wyyp.git"
 SKILL_DIR="${SKILL_DIR:-$HOME/.claude/skills/wyyp}"
-CODEX_SKILLS_DIR="${CODEX_SKILLS_DIR:-$HOME/.codex/skills}"
-CODEX_SKILL_LINK="$CODEX_SKILLS_DIR/wyyp"
 LEGACY_COMMAND="${HOME}/.claude/commands/wyyp.md"
+
+# 其他使用 skills.sh 协议的 agent 的 skill 目录
+# 格式: "<label>|<skills-root-dir>" - install.sh 会在 <skills-root-dir>/wyyp symlink 到 SKILL_DIR
+PEER_AGENTS=(
+    "Codex|${HOME}/.codex/skills"
+    "Trae|${HOME}/.trae/skills"
+    "Trae-CN|${HOME}/.trae-cn/skills"
+)
 TEMPLATE_REL="docs/templates/project-agents-template.md"
 CURSOR_TEMPLATE_REL="docs/templates/cursor-rule-template.mdc"
 CONFIG_TEMPLATE_REL="docs/templates/wyyp-config-template.yml"
@@ -129,34 +135,46 @@ if [[ -f "$LEGACY_COMMAND" ]]; then
 fi
 
 # ────────────────────────────────────────────────────────
-# Step 6: 检测 Codex,symlink 到 ~/.codex/skills/wyyp
+# Step 6: 检测其他支持 skills.sh 协议的 agent,symlink 到它们的 skill 目录
 # ────────────────────────────────────────────────────────
-# Codex(OpenAI Codex CLI)用同样的 SKILL.md 协议,只是读自己的 skills 目录
-# 通过 symlink 一份 skill 两处生效,update 时不需要重复 sync
-if [[ "${NO_CODEX:-0}" == "1" ]]; then
-    echo "⏭  跳过 Codex 安装(NO_CODEX=1)"
-elif [[ -d "$(dirname "$CODEX_SKILLS_DIR")" ]]; then
-    mkdir -p "$CODEX_SKILLS_DIR"
-    if [[ -L "$CODEX_SKILL_LINK" ]]; then
-        # 已是符号链接,确认指向正确
-        CURRENT_TARGET="$(readlink "$CODEX_SKILL_LINK")"
-        if [[ "$CURRENT_TARGET" == "$SKILL_DIR" ]]; then
-            echo "✓ Codex skill 已就位:$CODEX_SKILL_LINK -> $SKILL_DIR"
-        else
-            rm "$CODEX_SKILL_LINK"
-            ln -s "$SKILL_DIR" "$CODEX_SKILL_LINK"
-            echo "✓ Codex skill 链接已更新:$CODEX_SKILL_LINK -> $SKILL_DIR"
-        fi
-    elif [[ -e "$CODEX_SKILL_LINK" ]]; then
-        echo "⚠  $CODEX_SKILL_LINK 已存在但不是符号链接,跳过。如要换成 link:"
-        echo "     rm -rf '$CODEX_SKILL_LINK' && ln -s '$SKILL_DIR' '$CODEX_SKILL_LINK'"
-    else
-        ln -s "$SKILL_DIR" "$CODEX_SKILL_LINK"
-        echo "✓ Codex skill 已安装(symlink):$CODEX_SKILL_LINK -> $SKILL_DIR"
-        echo "  重启 Codex 后,skill 列表里会出现 wyyp(个人)"
-    fi
+# Codex / Trae / Trae-CN 等同样用 SKILL.md 协议,只是各自读自己的 skills 目录。
+# 通过 symlink 一份 skill 多处生效,update 时不需要手工同步。
+# 跳过所有 peer 安装:NO_PEERS=1
+# 单独跳过某个:NO_CODEX=1 / NO_TRAE=1 / NO_TRAE_CN=1
+if [[ "${NO_PEERS:-0}" == "1" ]]; then
+    echo "⏭  跳过所有 peer agent 安装(NO_PEERS=1)"
 else
-    echo "⏭  未检测到 Codex($(dirname "$CODEX_SKILLS_DIR") 不存在),跳过"
+    for entry in "${PEER_AGENTS[@]}"; do
+        LABEL="${entry%%|*}"
+        PEER_SKILLS_DIR="${entry##*|}"
+        PEER_SKILL_LINK="$PEER_SKILLS_DIR/wyyp"
+        # 对应的 NO_<LABEL> 环境变量(上划线化 + 大写)
+        SKIP_VAR="NO_$(echo "$LABEL" | tr '[:lower:]-' '[:upper:]_')"
+        if [[ "${!SKIP_VAR:-0}" == "1" ]]; then
+            echo "⏭  跳过 $LABEL 安装($SKIP_VAR=1)"
+            continue
+        fi
+        if [[ ! -d "$(dirname "$PEER_SKILLS_DIR")" ]]; then
+            echo "⏭  未检测到 $LABEL($(dirname "$PEER_SKILLS_DIR") 不存在),跳过"
+            continue
+        fi
+        mkdir -p "$PEER_SKILLS_DIR"
+        if [[ -L "$PEER_SKILL_LINK" ]]; then
+            CURRENT_TARGET="$(readlink "$PEER_SKILL_LINK")"
+            if [[ "$CURRENT_TARGET" == "$SKILL_DIR" ]]; then
+                echo "✓ $LABEL skill 已就位:$PEER_SKILL_LINK -> $SKILL_DIR"
+            else
+                rm "$PEER_SKILL_LINK"
+                ln -s "$SKILL_DIR" "$PEER_SKILL_LINK"
+                echo "✓ $LABEL skill 链接已更新:$PEER_SKILL_LINK -> $SKILL_DIR"
+            fi
+        elif [[ -e "$PEER_SKILL_LINK" ]]; then
+            echo "⚠  $PEER_SKILL_LINK 已存在但不是符号链接,跳过"
+        else
+            ln -s "$SKILL_DIR" "$PEER_SKILL_LINK"
+            echo "✓ $LABEL skill 已安装(symlink):$PEER_SKILL_LINK -> $SKILL_DIR"
+        fi
+    done
 fi
 
 # ────────────────────────────────────────────────────────

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-19
+
+### Added
+
+- **Trae / Trae-CN 支持**:`install.sh` 现在会检测 `~/.trae/` 和 `~/.trae-cn/`(字节跳动 Trae IDE,海外版 + 国内版),分别 symlink 到各自的 `skills/wyyp`。Trae 和 Codex / Claude Code 用同样的 skills.sh 协议。
+- **peer agent 抽象**:Codex / Trae / Trae-CN 的 symlink 逻辑抽成通用循环,以后加新 agent 只要加一行 `"<Label>|<skills-root>"`。
+- **统一环境变量**:
+  - `NO_PEERS=1` 跳过所有 peer agent 安装
+  - `NO_CODEX=1` / `NO_TRAE=1` / `NO_TRAE_CN=1` 单独跳过某个
+  - `uninstall.sh` 对应清理所有 peer symlink
+
+### Migration note
+
+升级无感。已装 v0.5.0 的用户重跑 `install.sh` 会自动补上 Trae / Trae-CN 的 symlink。
+
 ## [0.5.0] - 2026-04-19
 
 ### Added
