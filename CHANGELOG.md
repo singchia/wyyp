@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-19
+
+### Changed
+
+- **安全维度扣分按"适用工具集"细化**(`spec/07-security.md`)。解决 v0.2.0 下纯文档 / skill 项目因 `gitleaks` 未装就被判 F 的过严问题。
+  - **每个仓库形态有自己的"适用工具集"**:
+    - 纯文档 / skill / 纯配置 → `[gitleaks]`
+    - Go → `[gitleaks, govulncheck, gosec]`
+    - Node/TS → `[gitleaks, npm audit]`(semgrep 可选)
+    - Python → `[gitleaks, pip-audit, bandit]`
+    - Rust → `[gitleaks, cargo-audit]`
+    - Java → `[gitleaks, dependency-check]`
+    - +发镜像 → `+ trivy`
+  - **不适用的工具不算"未装"**(docs 项目没 trivy 不扣分)
+  - **合并扣分公式**:`penalty = weight × (k/N) × (0.2 if fallback_clean else 1.0)`,k = 未装工具数,N = 适用工具数
+  - 手工 fallback 通过 → 扣 20%(而不是 50%)
+  - 对 gospec 这类纯文档仓库的影响:从 **50/100 (F)** 升到 **80/100 (B)**
+- **手工 fallback 扫描流程写进 spec**:密钥 pattern / `.gitignore` 检查 / git 历史快筛 / 依赖漏洞兜底。覆盖不到完整工具但挡住最常见问题。
+
+### Added
+
+- **`scripts/uninstall.sh`**:对称的卸载命令。默认删 `AGENTS.md` / `.cursor/rules/wyyp.mdc` / `~/.claude/commands/wyyp.md` / 未改过的 `.wyyp.yml` 模板;加 `KEEP_SKILL=0` 一并删 `~/.claude/skills/wyyp/`。
+  - 远程:`bash <(curl -sSL https://raw.githubusercontent.com/singchia/wyyp/main/scripts/uninstall.sh)`
+  - 本地:`~/.claude/skills/wyyp/scripts/uninstall.sh`
+
+### Migration note
+
+升级到 0.3.0 后,现有项目的打分可能变化——纯文档 / skill 项目会变宽松(从 F 可能升到 B),代码项目行为不变或更精准。如果你有 `.wyyp.yml`,不需要改。
+
 ## [0.2.0] - 2026-04-19
 
 ### Added

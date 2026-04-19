@@ -42,6 +42,15 @@ cd your-project
 bash <(curl -sSL https://raw.githubusercontent.com/singchia/wyyp/main/scripts/install.sh)
 ```
 
+### 卸载
+
+```bash
+bash <(curl -sSL https://raw.githubusercontent.com/singchia/wyyp/main/scripts/uninstall.sh)
+
+# 一并删 skill 目录
+KEEP_SKILL=0 bash <(curl -sSL https://raw.githubusercontent.com/singchia/wyyp/main/scripts/uninstall.sh)
+```
+
 一条命令会:
 
 1. 安装 skill 到 `~/.claude/skills/wyyp/`

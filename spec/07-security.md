@@ -12,9 +12,75 @@
 
 安全是**红线维度**——没有豁免。扣分更重:每 CRITICAL 扣 10,每 HIGH 扣 5,扣到 0 为止。理论上一个 CRITICAL 漏洞就能把权重 20 扣到 10,直接拉到 B 级甚至更低。
 
-**如果工具未装**(探测不到 gosec / govulncheck / gitleaks / trivy):
-- 不算 SKIP,算 **安全维度跑失败** → FAIL + 扣一半权重(10 分)
-- 报告里明确写"工具未装,质量无法验证",建议 `make tools` 先装
+## 每个仓库的"适用工具集"
+
+按仓库形态定义哪些安全工具对本仓库适用。**不适用的工具不算"未装"**,不扣分。
+
+| 形态 | 适用工具(✓ 必装) |
+|------|-------------------|
+| 纯文档 / skill / 纯配置 | gitleaks |
+| Go 项目 | gitleaks + govulncheck + gosec |
+| Node / TS 项目 | gitleaks + `npm audit` (+ semgrep 可选) |
+| Python 项目 | gitleaks + pip-audit + bandit |
+| Rust 项目 | gitleaks + cargo-audit |
+| Java (Maven) | gitleaks + dependency-check |
+| Docker 镜像发布 | 上述 + trivy |
+
+**关键原则**:docs 仓库没装 `trivy` 不是问题(trivy 对它 N/A);Go 仓库没装 `govulncheck` 是问题。
+
+## 工具未装的扣分规则
+
+设 N = 本仓库适用工具数量,k = 其中未装的工具数。
+
+| 场景 | 单工具扣分 |
+|------|-----------|
+| 工具装了,跑通(无 HIGH/CRITICAL) | 0 |
+| 工具装了,检出 HIGH/CRITICAL | 按 severity 规则扣(见下文) |
+| 工具未装 + **手工 fallback 扫描通过** | `security_weight × (1/N) × 0.2` |
+| 工具未装 + 无 fallback / fallback 发现问题 | `security_weight × (1/N) × 1.0` |
+
+**合并扣分公式**(k 个工具未装时):
+```
+penalty = security_weight × (k/N) × (0.2 if fallback_clean else 1.0)
+```
+
+**示例**(假设 security 权重归一后为 100):
+- 纯文档仓库(N=1)gitleaks 未装 + 手工通过 → 扣 `100 × 1 × 0.2 = 20` → 得 80(B)
+- 纯文档仓库 gitleaks 未装 + 手工也发现问题 → 扣 `100 × 1 × 1.0 = 100` → 得 0(F)
+- Go 仓库(N=3)全部未装 + 手工通过 → 扣 `100 × 1 × 0.2 = 20` → 80(B)
+- Go 仓库 1/3 未装 + 手工通过 → 扣 `100 × (1/3) × 0.2 ≈ 6.7` → 93(A)
+- Go 仓库全装 + 0 漏洞 → 100(A+)
+
+## 手工 fallback 扫描
+
+仅当"某工具未装"时 agent 做下面这套兜底,覆盖不到完整工具功能,但能挡住最常见的问题:
+
+1. **密钥 pattern 扫描**(等效于 gitleaks 的最小子集)
+   - AWS:`AKIA[0-9A-Z]{16}`
+   - GitHub:`ghp_[A-Za-z0-9]{36}` / `ghs_[A-Za-z0-9]{36}`
+   - OpenAI:`sk-[A-Za-z0-9]{20,}`
+   - Slack:`xox[pboa]-[A-Za-z0-9-]+`
+   - Private key:`-----BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY`
+   - 通用:`(?i)(password|secret|token|api[_-]?key)\s*[:=]\s*['"][A-Za-z0-9+/=_-]{16,}['"]`
+
+2. **`.gitignore` 检查**:是否忽略了 `.env`、`*.pem`、`id_rsa`、`secrets.yml` 等
+
+3. **提交历史快筛**:`git log --all -- .env .env.* *.pem id_rsa`(有命中 → 不算 clean)
+
+4. **依赖漏洞兜底**(仅代码项目,无 gitleaks 也不跑这个):
+   - Go:`go list -m all` → 看有无明显老版本(eg. `golang.org/x/crypto` < v0.17)
+   - Node:`package-lock.json` 里看有无 `"lodash": "< 4.17.21"` 等已知高危版本
+   - 这步很粗,只能抓最著名的几个
+
+**全部通过才算 `fallback_clean`**。
+
+## 工具跑出漏洞时的扣分
+
+和"工具未装"独立。装了工具后跑出的问题,按严重度扣:
+- 每 CRITICAL 扣 10(归一前 weight 的计量单位;归一后按比例放大)
+- 每 HIGH 扣 5
+- MEDIUM 仅告警,不扣分(`.wyyp.yml` 可改)
+- 扣到 0 为止
 
 ## 四条基线
 
