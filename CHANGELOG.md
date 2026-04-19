@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-19
+
+### Added
+
+- **Codex 支持**:`install.sh` 现在会自动检测 `~/.codex/`,并在 `~/.codex/skills/wyyp` 建一个 symlink 指向 `~/.claude/skills/wyyp`。重启 Codex 后,wyyp 会出现在"个人"skill 列表里。
+  - 一份源码、两处生效,update skill 不需要手工同步
+  - 跳过:`NO_CODEX=1 bash install.sh`
+  - 覆盖位置:`CODEX_SKILLS_DIR=/custom/path bash install.sh`
+- **`uninstall.sh` 对应清理**:Step 5 检查并删除 Codex 的 symlink(只删 symlink,不会碰用户手动放进去的真实文件)。
+
+### Notes
+
+- 未来计划:自动检测更多 agent(Cline / Gemini CLI 等)的 skill 目录。目前先支持 Claude Code + Codex。
+
 ## [0.4.0] - 2026-04-19
 
 ### Changed (BREAKING — 安装产物简化)

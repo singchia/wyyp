@@ -1,6 +1,6 @@
 {
   "name": "wyyp",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "我要验牌(wyyp)— QA 质量工程 skill。Claude Code 下输入 /wyyp 触发 7 维度验牌:单元 / 集成 / 回归 / 基准 / 兼容性 / 混沌 / 安全。三态判定(applicable / MISSING / N/A)+ 加权百分制评分 + 等级(A+ ~ F);全部通过输出'牌没有问题',有问题按等级给话术和修复建议。自动识别仓库形态(纯文档 / 单文件 CLI / MVP / 成熟服务)决定哪些维度适用,避免对小项目一刀切。语言无关,框架中性。符合 skills.sh 协议,可通过 npx skills add 或 install.sh 安装。| QA quality engineering skill — /wyyp runs 7-dimension verification with weighted scoring, awards 牌没有问题 on A+ and blocks release on F.",
   "author": "singchia",
   "license": "MIT",

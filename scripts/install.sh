@@ -26,6 +26,8 @@ set -euo pipefail
 
 REPO_URL="https://github.com/singchia/wyyp.git"
 SKILL_DIR="${SKILL_DIR:-$HOME/.claude/skills/wyyp}"
+CODEX_SKILLS_DIR="${CODEX_SKILLS_DIR:-$HOME/.codex/skills}"
+CODEX_SKILL_LINK="$CODEX_SKILLS_DIR/wyyp"
 LEGACY_COMMAND="${HOME}/.claude/commands/wyyp.md"
 TEMPLATE_REL="docs/templates/project-agents-template.md"
 CURSOR_TEMPLATE_REL="docs/templates/cursor-rule-template.mdc"
@@ -124,6 +126,37 @@ fi
 if [[ -f "$LEGACY_COMMAND" ]]; then
     rm "$LEGACY_COMMAND"
     echo "🧹 清理旧版残留:$LEGACY_COMMAND(0.4.0+ 不再需要)"
+fi
+
+# ────────────────────────────────────────────────────────
+# Step 6: 检测 Codex,symlink 到 ~/.codex/skills/wyyp
+# ────────────────────────────────────────────────────────
+# Codex(OpenAI Codex CLI)用同样的 SKILL.md 协议,只是读自己的 skills 目录
+# 通过 symlink 一份 skill 两处生效,update 时不需要重复 sync
+if [[ "${NO_CODEX:-0}" == "1" ]]; then
+    echo "⏭  跳过 Codex 安装(NO_CODEX=1)"
+elif [[ -d "$(dirname "$CODEX_SKILLS_DIR")" ]]; then
+    mkdir -p "$CODEX_SKILLS_DIR"
+    if [[ -L "$CODEX_SKILL_LINK" ]]; then
+        # 已是符号链接,确认指向正确
+        CURRENT_TARGET="$(readlink "$CODEX_SKILL_LINK")"
+        if [[ "$CURRENT_TARGET" == "$SKILL_DIR" ]]; then
+            echo "✓ Codex skill 已就位:$CODEX_SKILL_LINK -> $SKILL_DIR"
+        else
+            rm "$CODEX_SKILL_LINK"
+            ln -s "$SKILL_DIR" "$CODEX_SKILL_LINK"
+            echo "✓ Codex skill 链接已更新:$CODEX_SKILL_LINK -> $SKILL_DIR"
+        fi
+    elif [[ -e "$CODEX_SKILL_LINK" ]]; then
+        echo "⚠  $CODEX_SKILL_LINK 已存在但不是符号链接,跳过。如要换成 link:"
+        echo "     rm -rf '$CODEX_SKILL_LINK' && ln -s '$SKILL_DIR' '$CODEX_SKILL_LINK'"
+    else
+        ln -s "$SKILL_DIR" "$CODEX_SKILL_LINK"
+        echo "✓ Codex skill 已安装(symlink):$CODEX_SKILL_LINK -> $SKILL_DIR"
+        echo "  重启 Codex 后,skill 列表里会出现 wyyp(个人)"
+    fi
+else
+    echo "⏭  未检测到 Codex($(dirname "$CODEX_SKILLS_DIR") 不存在),跳过"
 fi
 
 # ────────────────────────────────────────────────────────
