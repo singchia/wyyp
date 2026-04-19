@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-19
+
+### Changed (BREAKING — 安装产物简化)
+
+- **去掉独立的 `/wyyp` 斜杠命令文件**,skill-only 触发。
+  - 之前:`install.sh` 既装 skill(`~/.claude/skills/wyyp/`)又装 slash command(`~/.claude/commands/wyyp.md`),Claude Code 菜单里出现**两个** `/wyyp`,重复。
+  - 现在:只装 skill。现代 Claude Code 通过 `/<skill-name>` 直接触发 skill,不需要独立 command 文件。
+- **`install.sh` Step 5 自动清理 legacy**:从 < 0.4.0 升级上来的用户,`~/.claude/commands/wyyp.md` 会被自动删除,避免菜单重复。
+- **`uninstall.sh` Step 4 语义调整**:仍会删 legacy `wyyp.md`(保持升级兼容),但 0.4.0 起新装本来就不会有这个文件。
+- **`build-skill.sh` / `validate-skill.py` 去掉 `commands/` 相关**。仓库不再有 `commands/` 目录。
+
+### Migration note
+
+从 0.3.0 或更早升上来:直接重跑 `install.sh`,会自动清理 legacy 命令文件。不需要手工 `rm ~/.claude/commands/wyyp.md`。
+
+也可以:
+```bash
+# 先卸载(可选)
+bash <(curl -sSL https://raw.githubusercontent.com/singchia/wyyp/main/scripts/uninstall.sh)
+# 重装 0.4.0
+bash <(curl -sSL https://raw.githubusercontent.com/singchia/wyyp/main/scripts/install.sh)
+```
+
+升级后,`/` 菜单只会有一个 `/wyyp` 条目。
+
 ## [0.3.0] - 2026-04-19
 
 ### Changed

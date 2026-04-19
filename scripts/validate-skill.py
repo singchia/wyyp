@@ -44,7 +44,6 @@ WYYP_REQUIRED_FILES = [
     "spec/05-compatibility.md",
     "spec/06-chaos.md",
     "spec/07-security.md",
-    "commands/wyyp.md",
     "docs/templates/project-agents-template.md",
     "docs/templates/cursor-rule-template.mdc",
     "docs/templates/wyyp-config-template.yml",

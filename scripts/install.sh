@@ -5,8 +5,8 @@
 #   1. 安装 wyyp skill 到 ~/.claude/skills/wyyp/
 #   2. 在当前目录创建 AGENTS.md(Codex / Cline / Cursor 等通用 agent 入口)
 #   3. 检测 Cursor,自动落 .cursor/rules/wyyp.mdc
-#   4. 安装 /wyyp 斜杠命令到 ~/.claude/commands/wyyp.md(Claude Code)
-#   5. 可选落 .wyyp.yml 模板
+#   4. 可选落 .wyyp.yml 模板
+#   5. 清理旧版(< 0.4.0)留下的 ~/.claude/commands/wyyp.md(避免 /wyyp 菜单重复)
 #
 # 用法(远程):
 #     cd your-project
@@ -20,22 +20,20 @@
 #     SKILL_DIR=.claude/skills/wyyp bash <(curl -sSL .../install.sh)
 #
 # 跳过子项:
-#     NO_CURSOR=1 NO_COMMAND=1 NO_CONFIG=1 bash <(curl -sSL .../install.sh)
+#     NO_CURSOR=1 NO_CONFIG=1 bash <(curl -sSL .../install.sh)
 
 set -euo pipefail
 
 REPO_URL="https://github.com/singchia/wyyp.git"
 SKILL_DIR="${SKILL_DIR:-$HOME/.claude/skills/wyyp}"
-COMMAND_DIR="${COMMAND_DIR:-$HOME/.claude/commands}"
+LEGACY_COMMAND="${HOME}/.claude/commands/wyyp.md"
 TEMPLATE_REL="docs/templates/project-agents-template.md"
 CURSOR_TEMPLATE_REL="docs/templates/cursor-rule-template.mdc"
 CONFIG_TEMPLATE_REL="docs/templates/wyyp-config-template.yml"
-COMMAND_SRC_REL="commands/wyyp.md"
 TARGET_AGENTS="./AGENTS.md"
 TARGET_CURSOR_DIR="./.cursor/rules"
 TARGET_CURSOR="$TARGET_CURSOR_DIR/wyyp.mdc"
 TARGET_CONFIG="./.wyyp.yml"
-TARGET_COMMAND="$COMMAND_DIR/wyyp.md"
 
 echo "📦 wyyp(我要验牌)安装"
 echo ""
@@ -68,7 +66,6 @@ fi
 TEMPLATE_FULL="$SKILL_DIR/$TEMPLATE_REL"
 CURSOR_TEMPLATE_FULL="$SKILL_DIR/$CURSOR_TEMPLATE_REL"
 CONFIG_TEMPLATE_FULL="$SKILL_DIR/$CONFIG_TEMPLATE_REL"
-COMMAND_SRC_FULL="$SKILL_DIR/$COMMAND_SRC_REL"
 
 if [[ ! -f "$TEMPLATE_FULL" ]]; then
     echo "❌ 模板未找到: $TEMPLATE_FULL,安装可能损坏"
@@ -106,26 +103,7 @@ else
 fi
 
 # ────────────────────────────────────────────────────────
-# Step 4: Claude Code /wyyp 斜杠命令
-# ────────────────────────────────────────────────────────
-if [[ "${NO_COMMAND:-0}" == "1" ]]; then
-    echo "⏭  跳过 /wyyp 斜杠命令(NO_COMMAND=1)"
-elif [[ ! -f "$COMMAND_SRC_FULL" ]]; then
-    echo "⚠  /wyyp 命令源文件未找到,跳过"
-else
-    mkdir -p "$COMMAND_DIR"
-    if [[ -f "$TARGET_COMMAND" ]]; then
-        BACKUP="$TARGET_COMMAND.bak.$(date +%Y%m%d%H%M%S)"
-        echo "⚠  $TARGET_COMMAND 已存在,备份为 $BACKUP"
-        cp "$TARGET_COMMAND" "$BACKUP"
-    fi
-    cp "$COMMAND_SRC_FULL" "$TARGET_COMMAND"
-    echo "✓ /wyyp 斜杠命令已安装:$TARGET_COMMAND"
-    echo "  在 Claude Code 里输入 /wyyp 即可触发验牌"
-fi
-
-# ────────────────────────────────────────────────────────
-# Step 5: .wyyp.yml 配置(可选)
+# Step 4: .wyyp.yml 配置(可选)
 # ────────────────────────────────────────────────────────
 if [[ "${NO_CONFIG:-0}" == "1" ]]; then
     echo "⏭  跳过 .wyyp.yml 模板(NO_CONFIG=1)"
@@ -136,6 +114,16 @@ elif [[ ! -f "$CONFIG_TEMPLATE_FULL" ]]; then
 else
     cp "$CONFIG_TEMPLATE_FULL" "$TARGET_CONFIG"
     echo "✓ .wyyp.yml 模板已创建(可按需编辑)"
+fi
+
+# ────────────────────────────────────────────────────────
+# Step 5: 清理旧版(< 0.4.0)残留的 slash command 文件
+# ────────────────────────────────────────────────────────
+# 0.4.0 改成 skill-only:/wyyp 直接触发 skill,不再需要独立的 commands/wyyp.md
+# 老用户升级时把 legacy command 文件清掉,否则 Claude Code 菜单会出现两个 /wyyp
+if [[ -f "$LEGACY_COMMAND" ]]; then
+    rm "$LEGACY_COMMAND"
+    echo "🧹 清理旧版残留:$LEGACY_COMMAND(0.4.0+ 不再需要)"
 fi
 
 # ────────────────────────────────────────────────────────
@@ -151,6 +139,7 @@ echo ""
 echo "───────────────────────────────────────────────"
 echo "下一步:"
 echo "  1. 在 Claude Code 里输入 /wyyp 开始验牌"
+echo "     (/wyyp 会直接触发 wyyp skill,不需要额外命令文件)"
 echo "  2. 或编辑 .wyyp.yml 调整默认策略"
 echo "  3. 提交到 git:"
 echo "       git add AGENTS.md .cursor/rules/wyyp.mdc .wyyp.yml"

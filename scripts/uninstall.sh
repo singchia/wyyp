@@ -86,17 +86,18 @@ else
 fi
 
 # ────────────────────────────────────────────────────────
-# Step 4: /wyyp 斜杠命令
+# Step 4: /wyyp 斜杠命令(legacy:0.4.0 之前才会有这个文件)
 # ────────────────────────────────────────────────────────
+# 0.4.0 起不再装独立 slash command,但老版本装过的用户升级时这里可能残留
 if [[ -f "${TARGET_COMMAND}" ]]; then
     if [[ "${KEEP_COMMAND}" == "1" ]]; then
         echo "⏭  ${TARGET_COMMAND} 保留(KEEP_COMMAND=1)"
     else
         rm "${TARGET_COMMAND}"
-        echo "✓ 已删除 ${TARGET_COMMAND}(/wyyp 斜杠命令已移除)"
+        echo "✓ 已删除 legacy ${TARGET_COMMAND}(0.4.0+ 不再需要)"
     fi
 else
-    echo "⏭  ${TARGET_COMMAND} 不存在,跳过"
+    echo "⏭  ${TARGET_COMMAND} 不存在,跳过(0.4.0+ 本来就不装)"
 fi
 
 # ────────────────────────────────────────────────────────

@@ -42,7 +42,7 @@ cd your-project
 bash <(curl -sSL https://raw.githubusercontent.com/singchia/wyyp/main/scripts/install.sh)
 ```
 
-Installs skill to `~/.claude/skills/wyyp/`, drops `AGENTS.md` and `.cursor/rules/wyyp.mdc`, installs `/wyyp` slash command to `~/.claude/commands/wyyp.md`, places `.wyyp.yml` template.
+Installs skill to `~/.claude/skills/wyyp/` (`/wyyp` triggers the skill directly — no standalone command file needed), drops `AGENTS.md`, `.cursor/rules/wyyp.mdc`, `.wyyp.yml` template. Auto-cleans legacy `~/.claude/commands/wyyp.md` from pre-0.4.0 installs.
 
 ### Offline
 
